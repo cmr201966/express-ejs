@@ -3,21 +3,15 @@ var app = express()
 
 // SHOW LIST OF PERSONS
 app.get('/', function(req, res, next) {
+	console.log("GET");
 	req.getConnection(function(error, conn) {
 		conn.query('SELECT * FROM node_express_crud ORDER BY id DESC',function(err, rows, fields) {
-			//if(err) throw err
 			if (err) {
-				req.flash('error', err)
-				res.render('person/list', {
-					title: 'Adminstrate the Persons', 
-					data: ''
-				})
+               res.send("Error al recuperar las personas");
+
 			} else {
-				// render to views/person/list.ejs template file
-				res.render('person/list', {
-					title: 'Administrate the Persons', 
-					data: rows
-				})
+                res.send({rows});
+
 			}
 		})
 	})
@@ -35,12 +29,11 @@ app.get('/add', function(req, res, next){
 })
 
 // ADD NEW PERSON POST ACTION
-app.post('/add', function(req, res, next){	
-	req.assert('name', 'Name is required').notEmpty()           //Validate name
-	req.assert('age', 'Age is required').notEmpty()             //Validate age
-    req.assert('email', 'A valid email is required').isEmail()  //Validate email
+app.post('/', function(req, res, next){	
+	console.log("POST");
+	console.log(req.body);
 
-    var errors = req.validationErrors()
+    var errors = false;
     
     if( !errors ) {   //No errors were found.  Passed Validation!
 		
@@ -49,56 +42,25 @@ app.post('/add', function(req, res, next){
 		 
 		********************************************/
 		var person = {
-			name: req.sanitize('name').escape().trim(),
-			age: req.sanitize('age').escape().trim(),
-			email: req.sanitize('email').escape().trim()
+			name: req.body.name,
+			age: req.body.age,
+			email: req.body.email
 		}
 		
 		req.getConnection(function(error, conn) {
-			conn.query('INSERT INTO node_express_crud SET ?', person, function(err, result) {
-				//if(err) throw err
+			console.log('INSERT INTO node_express_crud (name, email, age) VALUES ("' + req.body.name + '", "' + req.body.email + '", "' + req.body.age + '")');
+			conn.query('INSERT INTO node_express_crud (name, email, age) VALUES ("' + req.body.name + '", "' + req.body.email + '", "' + req.body.age + '")', person, function(err, result) {
 				if (err) {
-					req.flash('error', err)
 					
-					// render to views/person/add.ejs
-					res.render('person/add', {
-						title: 'Add a new Person',
-						name: user.name,
-						age: user.age,
-						email: user.email					
-					})
+					res.send({error: 'Error al insertar'})
 				} else {				
-					req.flash('success', 'Data added successfully!')
+					res.send({success: 'Data added successfully!'})
 					
-					// render to views/person/add.ejs
-					res.render('person/add', {
-						title: 'Add a new Person',
-						name: '',
-						age: '',
-						email: ''					
-					})
 				}
 			})
 		})
 	}
-	else {   //Display errors to person
-		var error_msg = ''
-		errors.forEach(function(error) {
-			error_msg += error.msg + '<br>'
-		})				
-		req.flash('error', error_msg)		
-		
-		/**
-		 * Using req.body.name 
-		 * because req.param('name') is deprecated
-		 */ 
-        res.render('person/add', { 
-            title: 'Add a new Person',
-            name: req.body.name,
-            age: req.body.age,
-            email: req.body.email
-        })
-    }
+	
 })
 
 // SHOW EDIT PERSON FORM
@@ -128,90 +90,44 @@ app.get('/edit/(:id)', function(req, res, next){
 })
 
 // EDIT PERSON POST ACTION
-app.put('/edit/(:id)', function(req, res, next) {
-	req.assert('name', 'Name is required').notEmpty()           //Validate name
-	req.assert('age', 'Age is required').notEmpty()             //Validate age
-    req.assert('email', 'A valid email is required').isEmail()  //Validate email
+app.put('/', function(req, res, next) {
+	   console.log(req.body);
 
-    var errors = req.validationErrors()
-    
-    if( !errors ) {   //No errors were found.  Passed Validation!
-		
-		/********************************************
-		 * Express-validator module
-		
-		********************************************/
 		var person = {
-			name: req.sanitize('name').escape().trim(),
-			age: req.sanitize('age').escape().trim(),
-			email: req.sanitize('email').escape().trim()
-		}
-		
-		req.getConnection(function(error, conn) {
-			conn.query('UPDATE node_express_crud SET ? WHERE id = ' + req.params.id, person, function(err, result) {
-				//if(err) throw err
-				if (err) {
-					req.flash('error', err)
-					
-					// render to views/person/add.ejs
-					res.render('person/edit', {
-						title: 'Edit the selected Person',
-						id: req.params.id,
-						name: req.body.name,
-						age: req.body.age,
-						email: req.body.email
-					})
-				} else {
-					req.flash('success', 'Data updated successfully!')
-					
-					// render to views/person/add.ejs
-					res.render('person/edit', {
-						title: 'Edit the selected Person',
-						id: req.params.id,
-						name: req.body.name,
-						age: req.body.age,
-						email: req.body.email
-					})
-				}
-			})
-		})
-	}
-	else {   //Display errors to person
-		var error_msg = ''
-		errors.forEach(function(error) {
-			error_msg += error.msg + '<br>'
-		})
-		req.flash('error', error_msg)
-		
-		/**
-		 * Using req.body.name 
-		 * because req.param('name') is deprecated
-		 */ 
-        res.render('person/edit', { 
-            title: 'Edit the selected Person',            
-			id: req.params.id, 
 			name: req.body.name,
 			age: req.body.age,
 			email: req.body.email
-        })
-    }
+		}
+		console.log('UPDATE node_express_crud SET ? WHERE id = ' + req.body.id);
+		req.getConnection(function(error, conn) {
+			conn.query('UPDATE node_express_crud SET ? WHERE id = ' + req.body.id, person, function(err, result) {
+				//if(err) throw err
+				if (err) {
+					
+					// render to views/person/add.ejs
+					res.render({error: 'Error al editar'})
+				} else {
+					res.send({success: 'Data updated successfully!'})
+					
+				}
+			})
+		})
+
 })
 
 // DELETE PERSON
-app.delete('/delete/(:id)', function(req, res, next) {
-	var person = { id: req.params.id }
-	
+//app.delete('/delete/(:id)', function(req, res, next) {
+	app.delete('/', function(req, res, next) {
+		var person = { id: req.body.id }
 	req.getConnection(function(error, conn) {
-		conn.query('DELETE FROM node_express_crud WHERE id = ' + req.params.id, person, function(err, result) {
+		conn.query('DELETE FROM node_express_crud WHERE id = ' + req.body.id, person, function(err, result) {
 			//if(err) throw err
 			if (err) {
-				req.flash('error', err)
 				// redirect to persons list page
-				res.redirect('/persons')
+				res.send({error: 'Error'})
 			} else {
-				req.flash('success', 'Person deleted successfully! id = ' + req.params.id)
 				// redirect to persons list page
-				res.redirect('/persons')
+				res.send({success: 'Person deleted successfully! id = ' + req.body.id})
 			}
 		})
 	})
